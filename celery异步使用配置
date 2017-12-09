@@ -1,0 +1,17 @@
+#celery.py文件
+
+任务队列是一种在线程或机器间分发任务的机制。
+消息队列的输入是工作的一个单元，称为任务，独立的职程（Worker）进程持续监视队列中是否有需要处理的新任务。
+Celery 用消息通信，通常使用中间人（Broker）在客户端和职程间斡旋。这个过程从客户端向队列添加消息开始，之后中间人把消息派送给职程。
+Celery 系统可包含多个职程和中间人，以此获得高可用性和横向扩展能力。
+Celery 是用 Python 编写的，但协议可以用任何语言实现。迄今，已有 Ruby 实现的 RCelery 、node.js 实现的 node-celery 以及一个 PHP 客户端 ，语言互通也可以通过 using webhooks 实现。
+
+
+from __future__ import absolute_import
+from celery import Celery
+
+#创建celery 对象实例 Celery('celery 对象名字') include=['调用的函数方法']
+celery_test = Celery('celery_test', include=['celery_test_module.celery_tasks'])
+#引入celery配置
+celery_test.config_from_object('celery_test_module.celery_config')
+
