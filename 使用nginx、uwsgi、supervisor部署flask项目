@@ -1,1 +1,116 @@
+一、安装nginx
+$ sudo apt-get install nginx
+
+项目目录文件路径 /home/pyvip/flask
+
+nginx配置文件 在目录/etc/nginx/conf.d下创建 文件名为flask_nginx.conf
+----------------------------------------------------------------
+server {
+    listen 9000 default_server;    #监听端口号9000
+    server_name localhost;         #域名 本机地址127.0.0.1
+
+    location /static/ {  
+        alias /home/pyvip/flask/static/;  #静态文件路径
+    }
+    location / {
+        uwsgi_pass 127.0.0.1:8000;    #代理的服务器端口
+        include uwsgi_params;     
+    }
+}
+
+启动nginx命令
+检查语法
+$ sudo service nginx configtest (返回ok则正确，fal则为语法错误)
+重新加载配置文件并重启nginx
+$ sudo service nginx reload
+重启nginx
+$ sudo service nginx restart
+启动
+$ sudo service nginx start
+停止
+$ sudo service nginx stop
+
+浏览器输入127.0.0.1:9000测试nginx启动是否成功
+
+查看nginx进程
+$ ps aux | grep nginx
+
+查看配置文件
+$ vim /etc/nginx/nginx.conf
+
+配置文件目录说明
+sites-available  目录下放配置文件
+sites-enabled    目录下放软连接文件，链接到sites-available目录中要使用的配置
+----------------------------------------------------------------
+
+
+二、安装uwsgi
+$ pip install uwsgi
+
+在项目创建uwsgi配置文件 uwsgi_config.ini
+----------------------------------------------------------------
+[uwsgi]
+socket = 0.0.0.0:8000       #socket协议接口
+#http = 0.0.0.0:8000        #http协议接口
+chdir = /home/pyvip/flask  #项目目录
+wsgi-file = flask_test001.py #要打开的文件
+callable = app    #调用的flask对象 调用app里面的flask类方法call
+processes =2 #进程数
+threads =2  #线程数
+
+启动uwsgi命令
+$ uwsgi uwsgi_config.ini
+----------------------------------------------------------------
+
+三、安装supervisor
+项目目录创建supervisord.conf文件写入配置
+----------------------------------------------------------------
+[group:flasks_uwsgi]          #创建组
+programs=flasks-8001, flask_uwsgi_8002     #进程名
+
+[program:flasks-8001]               #管理flasks-8001子进程
+command=python manage.py runserver --host 0.0.0.0 --port 8001   #要启动进程的命令
+directory=/home/pyvip/flask         #进程运行前，会前切换到这个目录
+
+autorestart=true          #如果是true的话，子进程将在supervisord启动后被自动启动
+redirect_stderr=true      # 如果为true，则stderr的日志会被写入stdout日志文件中
+stdout_logfile=/home/pyvip/flask/flask_test.log     #子进程的stdout的日志路径，指定路径
+loglevel=info   #日志级别
+
+[program:flask_uwsgi_8002]          #管理flasks-8002子进程
+command=uwsgi uwsgi_config.ini      #要启动进程的命令
+directory=/home/pyvip/flask         #进程运行前，会前切换到这个目录
+
+autorestart=true
+redirect_stderr=true
+stdout_logfile=/home/pyvip/flask_test002/flask_uwsgi.log
+loglevel=info
+
+
+[supervisorctl]             #这个主要是针对supervisorctl的一些配置
+serverurl=http://192.168.201.135:9999   
+username=zhangzan
+password=222
+
+[inet_http_server]          #侦听在TCP上的socket
+port=:9999                  #侦听的IP和端口，侦听所有IP用 :9001或*:9001
+username=zhangzan
+password=222
+
+[rpcinterface:supervisor]     #这个选项是给XML_RPC用的，当然你如果想使用supervisord或者web server 这个选项必须要开启的
+supervisor.rpcinterface_factory = supervisor.rpcinterface:make_main_rpcinterface
+
+启动supervisor
+supervisord -c supervisord.conf
+
+启动客户端
+supervisorctl -c supervisord.conf
+
+(envpy2) pyvip@VIP:~/flask$ supervisorctl -c supervisord.conf
+flasks_uwsgi:flask_uwsgi_8002    RUNNING   pid 4865, uptime 8:36:33
+flasks_uwsgi:flasks-8001         RUNNING   pid 4864, uptime 8:36:33
+supervisor> 
+
+----------------------------------------------------------------
+
 
