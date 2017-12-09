@@ -1,4 +1,3 @@
-#celery.py文件
 
 任务队列是一种在线程或机器间分发任务的机制。
 消息队列的输入是工作的一个单元，称为任务，独立的职程（Worker）进程持续监视队列中是否有需要处理的新任务。
@@ -6,6 +5,8 @@ Celery 用消息通信，通常使用中间人（Broker）在客户端和职程�
 Celery 系统可包含多个职程和中间人，以此获得高可用性和横向扩展能力。
 Celery 是用 Python 编写的，但协议可以用任何语言实现。迄今，已有 Ruby 实现的 RCelery 、node.js 实现的 node-celery 以及一个 PHP 客户端 ，语言互通也可以通过 using webhooks 实现。
 
+------------------------------------------------------------------------------------
+#celery.py文件
 
 from __future__ import absolute_import
 from celery import Celery
@@ -15,3 +16,188 @@ celery_test = Celery('celery_test', include=['celery_test_module.celery_tasks'])
 #引入celery配置
 celery_test.config_from_object('celery_test_module.celery_config')
 
+----------------------------------------------------------------------------------------
+#celery_config.py 文件 celery配置文件
+
+from __future__ import absolute_import
+from datetime import timedelta
+from celery.schedules import crontab
+
+#celery定时任务配置 redis 在 Redis 中存储任务的状态和返回值
+BROKER_URL = 'redis://127.0.0.1:6379/0'
+CELERY_RESULT_BACKEND = 'redis://127.0.0.1:6379/2'
+
+CELERY_TIMEZONE = 'Asia/Shanghai' #时区
+
+#celery 定时任务 每秒和每小时操作方法
+CELERYBEAT_SCHEDULE = {
+    'add-5s':{
+        'task':'celery_test_module.celery_tasks.add',   #设置执行的任务函数
+        'schedule':timedelta(seconds=10),               #设置间隔时间
+        'args':(15,15)                                  #设置任务函数方法参数
+    },
+    'every-hour':{
+        'task':'celery_test_module.celery_tasks.add',
+        'schedule':crontab(minute=12),
+        'args':(20,20)
+    }
+}
+
+
+------------------------------------------------------------------------------
+#celery_tasks.py文件 执行任务函数方法文件
+from celery_test_module.celery import celery_test 导入创建的celery对象
+
+#使用celery对象装饰器设置函数方法
+@celery_test.task
+def add(a,b):
+    return a + b
+
+#执行celery命令
+$ celery worker -A celery_module -l info -c 3 -B
+
+-------------------------------------------------------------------------------------
+
+#使用celery异步发送邮件
+
+celery异步发送邮件步骤
+1、写celery配置
+2、在新文件中创建celery对象 : celery = Celery('name')
+3、使用celery对象装饰异步执行的任务函数：@celery.task( )
+4、在有异步操作的文件中导入任务函数：使用  函数名.delay()调用
+
+
+#1、celery配置文件
+#配置redis储存任务的状态和返回值
+BROKER_URL = 'redis://127.0.0.1:6379/0'
+CELERY_RESULT_BACKEND = 'redis://127.0.0.1:6379/2'
+
+#时区
+CELERY_TIMEZONE = 'Asia/Shanghai'
+
+#celery定时任务配置 每秒和每小时操作方法
+CELERYBEAT_SCHEDULE = {
+  'add-5s':{
+      'task':'celery_app.add',          #执行任务的函数方法
+      'schedule':timedelta(seconds=3),  #设置执行间隔时间
+      'args':(15,15)                    #设置任务执行函数参数
+  }，
+  'every-hour': {
+     'task': 'celery_app.add',
+     'schedule': crontab(minute=12),
+     'args': (20, 20)
+  }
+}
+
+
+---------------------------------------------------------------
+#celery_app.py文件  
+
+from celery import Celery
+from ext import app
+
+#2、创建celery对象
+celery_test = Celery('celery_test')
+#引入celery配置 app.config
+celery_test.conf.update(app.config)
+
+#使用celery对象装饰器设置函数方法 add  celery定时任务
+@celery_test.task
+def add(a,b):
+    return a+b
+    
+#3、使用celery对象装饰器设置函数方法 send_qq_html_email  celery触发任务    
+@celery_test.task(bind=True)
+def send_qq_html_email(self,from_email,to_emails,title,content):
+"""使用celery发送html格式邮箱"""
+    print self.request
+    send_fail = []
+    for to_email in to_emails:
+        message = MIMEText(content,'html','utf-8')      #创建html邮箱内容使用html
+        message['Subject'] = u'{}---邮箱测试'.format(title).encode('utf-8')      #标题
+        message['From'] = from_email                        #发件人
+        message['To'] = to_email                            #收件人
+
+        try:
+            #创建发送邮件服务对象
+            s = smtplib.SMTP_SSL('smtp.qq.com',465)                 #创建发送邮件服务对象,创建链接
+            s.login(username,authorization_code)                    #登录服务器
+            s.sendmail(from_email,to_email,message.as_string())     #发送邮箱
+            print(message.as_string())
+            s.quit()
+            print(u'发送成功')
+        except smtplib.SMTPException as e:
+            send_fail.append(to_email)
+            print(u"发送失败:%s"%e)
+    return send_fail
+
+
+def send_email_code(email):
+    """celery发送html邮件函数"""
+    if email:
+        print '-----',type(email)
+        email = email.encode('utf-8')
+        if conn.get('email:%s'%email):
+            return False
+        code = ''.join([choice(printable[:62]) for i in range(4)])
+        content = u'<p><a href="http://127.0.0.1:8000/account/auth_email_code/?code=%s&email=%s">点击链接验证</a></p>'%(code,email)
+        #4、使用celery函数方法 函数名.delay()调用
+        send_qq_html_email.delay('369380397@qq.com',[email],'test',content)
+        conn.setex('email:%s'%email,code,30)
+        return True
+    return False
+    
+    
+#启动celery命令 
+$ celery worker -A celery_app.celery_test -l info -c 3 -B
+-----------------------------------------------------------------------------------------
+(envpy2) pyvip@VIP:~/flask$ celery worker -A celery_app.celery_test -l info -c 3 -B
+ 
+ -------------- celery@VIP v4.1.0 (latentcall)
+---- **** ----- 
+--- * ***  * -- Linux-4.4.0-87-generic-i686-with-Ubuntu-16.04-xenial 2017-12-09 21:32:51
+-- * - **** --- 
+- ** ---------- [config]
+- ** ---------- .> app:         celery_test:0xb62cbacc
+- ** ---------- .> transport:   redis://127.0.0.1:6379/0
+- ** ---------- .> results:     redis://127.0.0.1/2
+- *** --- * --- .> concurrency: 3 (prefork)
+-- ******* ---- .> task events: OFF (enable -E to monitor tasks in this worker)
+--- ***** ----- 
+ -------------- [queues]
+                .> celery           exchange=celery(direct) key=celery
+                
+
+[tasks]
+  . celery_app.add
+  . celery_app.send_qq_html_email
+
+[2017-12-09 21:32:52,535: INFO/Beat] beat: Starting...
+[2017-12-09 21:32:52,842: INFO/MainProcess] Connected to redis://127.0.0.1:6379/0
+[2017-12-09 21:32:52,906: INFO/MainProcess] mingle: searching for neighbors
+[2017-12-09 21:32:53,999: INFO/MainProcess] mingle: all alone
+[2017-12-09 21:32:54,037: INFO/MainProcess] celery@VIP ready.
+[2017-12-09 21:33:38,286: INFO/MainProcess] Received task: celery_app.send_qq_html_email[0ac07198-3cb7-4740-afc0-fe6965a48db7]  
+[2017-12-09 21:33:38,355: WARNING/ForkPoolWorker-2] <Context: {u'origin': u'gen6412@VIP', u'args': [u'369380397@qq.com', [u'369380397@qq.com'], u'test', u'<p><a href="http://127.0.0.1:8000/account/auth_email_code/?code=wu9n&email=369380397@qq.com">\u70b9\u51fb\u94fe\u63a5\u9a8c\u8bc1</a></p>'], u'chain': None, u'root_id': u'0ac07198-3cb7-4740-afc0-fe6965a48db7', u'expires': None, u'is_eager': False, u'correlation_id': u'0ac07198-3cb7-4740-afc0-fe6965a48db7', u'chord': None, u'reply_to': u'd67e5017-c028-3d5b-b96d-a1aa8b67f348', u'id': u'0ac07198-3cb7-4740-afc0-fe6965a48db7', u'kwargsrepr': u'{}', u'lang': u'py', u'retries': 0, u'task': u'celery_app.send_qq_html_email', u'group': None, u'timelimit': [None, None], u'delivery_info': {u'priority': 0, u'redelivered': None, u'routing_key': u'celery', u'exchange': u''}, u'hostname': u'celery@VIP', 'called_directly': False, u'parent_id': None, u'argsrepr': u'(\'369380397@qq.com\', [\'369380397@qq.com\'], \'test\', \'<p><a href="http://127.0.0.1:8000/account/auth_email_code/?code=wu9n&email=369380397@qq.com">\u70b9\u51fb\u94fe\u63a5\u9a8c\u8bc1</a></p>\')', u'errbacks': None, u'callbacks': None, u'kwargs': {}, u'eta': None, '_protected': 1}>
+[2017-12-09 21:33:39,472: WARNING/ForkPoolWorker-2] Content-Type: text/html; charset="utf-8"
+MIME-Version: 1.0
+Content-Transfer-Encoding: base64
+Subject: test---邮箱测试
+From: 369380397@qq.com
+To: 369380397@qq.com
+
+PHA+PGEgaHJlZj0iaHR0cDovLzEyNy4wLjAuMTo4MDAwL2FjY291bnQvYXV0aF9lbWFpbF9jb2Rl
+Lz9jb2RlPXd1OW4mZW1haWw9MzY5MzgwMzk3QHFxLmNvbSI+54K55Ye76ZO+5o6l6aqM6K+BPC9h
+PjwvcD4=
+[2017-12-09 21:33:39,660: INFO/ForkPoolWorker-2] Task celery_app.send_qq_html_email[0ac07198-3cb7-4740-afc0-fe6965a48db7] succeeded in 1.307265886s: []
+
+
+
+
+
+
+
+    
+    
+    
+    
