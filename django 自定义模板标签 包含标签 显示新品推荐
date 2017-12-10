@@ -1,0 +1,33 @@
+#包含标签
+
+django.template.Library.inclusion_tag（）
+#常见的模板标签类型是通过渲染另一个模板来显示一些数据的类型。
+
+@register.inclusion_tag('shop/refferral_good.html')     #@register.inclusion_tag自定义模板标签 （引用到的模板文件名）
+def refferral_goods(cid=None):           #html使用 {% refferral_goods cid %}
+    """新品推荐"""
+    if cid:
+        #通过分类id获取，倒序取两条数据
+        refferral_goods = GoodsInfo.objects.filter(category_id=cid).order_by('-id')[:2]
+        print 'refferral_goods====',refferral_goods
+    else:
+        refferral_goods = GoodsInfo.objects.all().order_by('-id')[:2]
+    #返回数据和媒体路径
+    return {
+        'refferral_goods':refferral_goods,
+        'MEDIA_URL':settings.MEDIA_URL  #这里需要手动将图像媒体路径添加到字典中
+    }
+    
+-----------------------------------------------------------------------------
+# shop/refferral_good.html 文件
+
+{% load staticfiles %}
+<ul>
+    {% for goods in refferral_goods %}
+    <li>
+        <a href="{% url 'shop:detail' goods.id %}"><img src="{{ MEDIA_URL }}{{ goods.images }}"></a>
+        <h4><a href="{% url 'shop:detail' goods.id %}">{{ goods.name }}</a></h4>
+        <div class="prize">{{ goods.price }}</div>
+    </li>
+    {% endfor %}
+</ul>
