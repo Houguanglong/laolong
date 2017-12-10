@@ -1,0 +1,121 @@
+#一、创建发送邮件方法
+import smtplib
+from email.mime.text import MIMEText
+
+username = "3002832062@qq.com"  # qq账户
+authorization_code = "jazlroivptundddc"  # qq邮箱授权码
+
+ef send_qq_html_email(self, from_email, to_emails, title, content):
+    """发送html邮箱方法"""
+    print self.request
+    send_fail = []
+    for to_email in to_emails:
+        #构建邮箱
+        message = MIMEText(content, "html", "utf-8" )               #创建html邮箱内容使用html
+        message["Subject"] = u"{}--邮箱测试".format(title)           #标题
+        message["From"] = from_email                                #发件人
+        message["To"] = to_email                                    #收件人
+        try:
+            #创建发送邮箱对象
+            s = smtplib.SMTP_SSL("smtp.qq.com", 465)
+            s.login(username, authorization_code)                   #登录服务器
+            s.sendmail(from_email, to_email, message.as_string())   #发送邮箱,支持发送列表
+            print message.as_string()
+            s.quit()                                                #断开链接
+            print "发送成功"
+        except smtplib.SMTPException, e:
+            send_fail.append(to_email)
+            print "发送失败,%s"%e
+    return send_fail
+    
+#二、发送邮件
+
+from datetime import datetime
+from libs.redis_conn.redis_conn import conn
+from random import randint, choice
+
+def send_email_code_libs(email):        #email:21234@qq.com
+    """同步发送html邮件"""
+    if email:                           
+        if conn.get('email:%s'%email):  #如果redis缓存里存在该邮箱则返回false 
+            return False
+        code = ''.join([choice(printable[:62]) for i in range(4)])  #生成4位随机数验证码
+        
+        #邮件内容 将生成的随机数和邮件添加到url路由中 
+        content = u'<p><a href="http://127.0.0.1:8000/account/auth_email_code/?code=%s&email=%s">点击链接验证</a></p>'%(code,email)
+        #发送邮件
+        send_fail = send_qq_html_email('369380397@qq.com',[email],'test',content)
+        #如果发送成功将邮箱名作为键，将生成的随机码作为键值写入缓存里  设置过期时间为一分钟
+        if not send_fail:
+            conn.setex('email:%s'%email,code,60)
+            return True
+        else:
+            return False
+    return False
+    
+#三、验证邮件验证码函数 更改邮箱
+
+@account_blueprint.route('/auth_email_code/',methods=['GET'])
+def auth_email_code():
+    """验证邮箱"""
+    code = request.args.get('code','')
+    email = request.args.get('email','')
+    resutl = auth_email_code_libs(code,email)
+    if resutl:
+        return u'邮箱修改成功'
+    return '修改错误'
+    
+    
+    
+def auth_email_code_libs(code,email):
+    """验证邮箱验证码函数"""
+    redis_email = conn.get('email:%s'%email)
+    # 从redis取出的文本是bytes类型 要转换字符编码
+    if redis_email == code:
+        user =g.current_user
+        user.email = email
+        db.session.add(user)
+        db.session.commit()
+        return True
+    return False
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    if email:
+        email = email.encode('utf-8')   #转成utf-8编码
+        if conn.get('email:%s'% email):    
+            return False
+        code = ''.join([choice(printable[:62]) for i in xrange(4)]) 
+        
+        
+        content = """ 
+        <p><a href="http://192.168.201.135:9000/account/auth_email_code/?code=%s&email=%s">点击链接验证
+               href="http://192.168.201.135:9000/account/auth_email_code
+               </a></p>
+        """%(code, email)   
+        
+        send_fail = send_qq_html_email("3002832062@qq.com", [email], "test", content)
+        if not send_fail:
+            conn.setex('email:%s'%email, code, 60)
+            return True
+        else:
+            return False
+    return False
+    
+    
+    
+    
