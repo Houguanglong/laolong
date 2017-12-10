@@ -37,6 +37,7 @@ class BrowseCache(object):
     @classmethod
     def get_browse(cls,user,start=-10,end=-1):
         """获取浏览商品id"""
+        #返回商品id列表  ['1', '179', '180', '29', '30']
         return conn.zrange(cls.user_browse_cache_key.format(user.id),start,end)
 
 
