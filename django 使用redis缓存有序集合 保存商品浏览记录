@@ -1,0 +1,57 @@
+#一、创建redis缓存数据库对象
+from django.redis import get_redis_connection
+
+__all__ = ['conn']
+
+使用setting文件里 cache的配置默认
+conn = get_redis_connection('default')
+
+
+--------------------------------------------------------------------------
+# settinge文件 缓存配置
+CACHES = {
+    "default": {
+        "BACKEND": "django_redis.cache.RedisCache",     # cache的引擎
+        "LOCATION": "redis://127.0.0.1:6379/0",  # redis的ip地址
+        "OPTIONS": {
+            "CLIENT_CLASS": "django_redis.client.DefaultClient",  # 使用redis默认的缓存
+        }
+    }
+}
+
+--------------------------------------------------------------------------
+#二、创建redis方法 保持浏览商品记录和获取商品记录
+
+from utils.redis import conn
+
+class BrowseCache(object):
+    """缓存浏览商品记录函数"""
+    user_browse_cache_key = 'user_browse_cache_key_{}'  #保存在redis中的键
+
+    @classmethod
+    def set_browse(cls,user,gid):
+        """添加浏览商品id到cache"""
+        #使用redis有序集合添加元素记录 将用户id和商品id保存在键值中
+        conn.zadd(cls.user_browse_cache_key.format(user.id),str(1),gid)
+
+    @classmethod
+    def get_browse(cls,user,start=-10,end=-1):
+        """获取浏览商品id"""
+        return conn.zrange(cls.user_browse_cache_key.format(user.id),start,end)
+
+
+#三、在用户中心展示浏览商品记录
+def user_center_info(request):
+    """用户中心"""
+    browses = BrowseCache.get_browse(request.user)  #从redis缓存中取出商品浏览记录  browses=['1', '179', '180', '29', '30']
+    goods_info = GoodsInfo.objects.filter(id__in=browses)   #使用id__in方法查询列表
+    return render(request,'account/user_center_info.html',locals())
+
+
+
+
+
+
+
+
+
