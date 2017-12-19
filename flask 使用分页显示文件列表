@@ -1,0 +1,93 @@
+#views文件 files_views.py
+
+@files_blueprint.route('/files_list/<page>',methods=['GET','POST'])
+def files_list(page):  #获取url参数 当前页码
+    """文件列表"""
+    files_dict = files_list_libs(page)
+    kw = {'files':files_dict['spilt_countent'],'files_page':files_dict}
+    return render_template('files/files_list.html',**kw)
+    
+ 
+ ------------------------------------------------------------------------------------
+ 
+ #处理逻辑函数
+ 
+ def files_list_libs(page):
+    """文件列表"""
+    files = Files.all()     #获取所有文件数据
+    files_page = get_page_list(int(page),files,config['constant'].MAX_PAGE) 使用分页方法进行分页
+    return files_page
+   
+    
+def get_page_list(current_page,countent,MAX_PAGE):  #当前页码 文件数据 最大显示数量
+    """分页方法"""
+    start = (current_page - 1) * MAX_PAGE          #1-1*2=0  2-1*2=2
+    end = start + MAX_PAGE                         #2+2=4
+    spilt_countent = countent[start:end]          #将内容[[1,2],[3,4],5]
+    count = len(countent) / MAX_PAGE              #总页数
+    first_page = count-(count-1)                  #第一页
+    pre_page = current_page-1                     #上一页
+    next_page = current_page+1                    #下一页
+
+    #如果页数不能整除数量 页数则加1
+    if len(countent)%MAX_PAGE !=0:
+        count +=1
+
+    #如果上一页为0则为1
+    if pre_page == 0:
+        current_page = 1
+
+    #如果下一页大于总页数则为当前页码
+    if next_page >count:
+        next_page = current_page
+
+    #总页数小于5页 则for循环算出页码
+    if count < 5:
+        pages = [ p for p in xrange(1,count+1) ]
+
+    #如果当前页码小于3 显示的页码为1-5
+    elif current_page <=3:
+        pages = [ p for p in xrange(1,6)]
+
+    #如果当前页码大于 总页数-2
+    elif current_page >count-2:
+        pages = [ p for p in xrange(count-4,count+1)]
+
+    # 如果当前页码小于 总页数-2
+    else:
+        pages = [ p for p in xrange(current_page-2,current_page+3) ]
+
+    return {
+        'spilt_countent':spilt_countent,
+        'count':count,
+        'pre_page':pre_page,
+        'next_page':next_page,
+        'pages':pages,
+        'current_page':current_page,
+        'first_page':first_page
+    }
+
+ ------------------------------------------------------------------------------------
+ #模板文件html 代码
+  <ul class="pagination">
+      <li><a href="{{ files_page['pre_page'] }}">«</a></li>
+
+      {% if files_page['current_page'] >3 %}
+      <li><a href="{{ files_page['first_page']}}">首页</a></li>
+      <li><a href="javascript:;">...</a></li>
+      {% endif %}
+
+      {% for index in files_page['pages'] %}
+      <li {% if index == files_page['current_page'] %}class="active"{% endif %}><a href="{{ index }}">{{ index }}</a></li>
+      {% endfor %}
+
+      {% if files_page['current_page'] <= files_page['count']-3 %}
+      <li><a href="{{ files_page['count'] }}">尾页</a></li>
+      <li><a href="javascript:;">...</a></li>
+      {% endif %}
+
+      <li><a href="{{ files_page['next_page'] }}">»</a></li>
+  </ul>
+ 
+ 
+ 
