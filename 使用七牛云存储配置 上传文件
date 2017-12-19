@@ -1,0 +1,45 @@
+
+*创建七牛云存储配置文件 上传文件代码 #qiniu_libs.py
+
+# -*- coding: utf-8 -*-
+# flake8: noqa
+from qiniu import Auth, put_file, etag, urlsafe_base64_encode,put_data
+import qiniu.config
+#需要填写你的 Access Key 和 Secret Key 密钥
+access_key = 't5Tasaf5BdGeJsbuvfQMERY9tfITESDgH6-qkHs5'
+secret_key = 'RM4Ra5JDjXAkOiw3xmxWyqAlvOvlyoxZH5TLGGAv'
+#构建鉴权对象
+q = Auth(access_key, secret_key)
+#要上传的空间
+bucket_name = 'image'
+
+def upload_qiniu_file_content(content):
+    # 生成上传 Token，可以指定过期时间等
+    token = q.upload_token(bucket_name)
+    ret, _ = put_data(token, None,content)
+    return ret['key']
+    
+--------------------------------------------------------------------------------------
+def qiniu_save_file(file_data):
+    """七牛保存文件函数"""
+    #读取出文件内容
+    file_content = file_data.read()
+    #使用七牛云上传文件
+    ret = upload_qiniu_file_content(file_content)
+    
+    #将文件内容保存在数据库中
+    files = Files()
+    files.filename = file_data.filename         #文件名
+    files.content_length = len(file_content)    #文件长度
+    files.content_type = file_data.content_type #文件类型
+    files.user_id = g.current_user.id           #文件上传者
+    files.file_hash = file_content              #文件内容
+    files.uuid = ret                            #uuid
+    db.session.add(files)
+    db.session.commit()
+    file_path = 'http://ow2klvfcy.bkt.clouddn.com/%s' % ret  #显示上传成功显示路径
+
+    return {'status':True,'msg':u'上传成功','data':file_path}
+    
+    
+参考文档：https://developer.qiniu.com/kodo/sdk/1242/python
