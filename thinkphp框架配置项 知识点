@@ -49,3 +49,61 @@ if($exit){
 }
 
 
+4、动态设置配置项的技巧 逐个配置/批量配置/二级配置
+class Index
+{
+    public function index()
+    {
+        //使用类方法\think\Config::set()设置配置项
+        //1、逐个设置
+        Config::set('laocao','老曹');
+        dump(Config::get());
+        
+        //2、批量设置
+        $conf = [
+            'school' => '郴州职业技术学院',
+            'city' => '郴州'
+        ];
+        Config::set($conf);
+        dump(Config::get());
+        
+        //3、二级设置
+        $conf = [
+            'school' => '郴州职业技术学院',
+            'city' => '郴州'
+        ];
+        Config::set('xinxi',$conf);
+        dump(Config::get());
+        
+        
+        //使用助手函数config设置配置项
+        //1、逐个设置
+        config('hello','houguang');
+        dump(config());
+        
+        //2、批量设置
+        $conf = [
+            'school' => '郴州职业技术学院',
+            'city' => '郴州'
+        ];
+        config($conf);
+        dump(config());
+        
+        //3、二级设置
+        $conf = [
+            'school' => '郴州职业技术学院',
+            'city' => '郴州'
+        ];
+        Config('xinxi',$conf);
+        dump(Config());
+        
+        
+    }
+}
+
+
+
+
+
+
+
