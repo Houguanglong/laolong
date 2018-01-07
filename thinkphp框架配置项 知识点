@@ -1,0 +1,51 @@
+1、自定义配置目录 及 配置文件格式类型
+
+// [ 应用入口文件 ]
+
+// 定义应用目录
+define('APP_PATH', __DIR__ . '/../application/');
+
+//定义配置目录
+define('CONF_PATH',__DIR__ . '/../config/');
+
+//定义配置文件格式
+//define('CONF_EXT','.ini');
+//define('CONF_EXT','.json');
+//define('CONF_EXT','.xml');
+
+// 加载框架引导文件
+require __DIR__ . '/../thinkphp/start.php';
+
+
+2、导入其他位置的配置文件 及 其他格式类型的配置文件
+
+使用类方法load加载其他位置配置文件
+\think\Config::load(APP_PATH . '../config/newconfig/conf.php'); 
+
+使用类方法parse加载其他位置其他类型配置文件(文件绝对路径，'.后缀名')
+\think\Config::parse(APP_PATH . '../config/newconfig/conf.ini','ini');
+
+
+3、TP5框架配置项的正确读取 类方法以及助手函数
+use think\Config;
+class Index
+{
+    public function index()
+    {
+        //使用类方法has判断是否存在该配置(助手函数方法config('?配置名'))  返回布尔值
+        dump(\think\Config::has('app_debug'));
+        //使用助手函数config（相当于Config::get()） 查看二级配置.号加键名得到键值
+        dump(config('aaaa.my_name'));
+    }
+}
+
+实例演示：
+$conf = 'php.my_name';
+$exit = Config::has($conf);
+if($exit){
+    dump(config($conf));
+}else{
+    return $conf.'配置不存在';
+}
+
+
