@@ -102,8 +102,73 @@ class Index
 }
 
 
+5、独立配置\扩展配置
+//1.用户自定义的独立配置文件必须放在应用或者模块下面的extra目录下面
+//2.默认独立配置文件database.php(数据库)文件既可以挡在extra下面，也可以放在应用或者模块同级的目录下
+//如果放在extra目录下，优先级大于放在应用或者模块同级目录下面
+//3.文件名就是配置项名称，文件返回一个数组(二维数组)
 
+\extra\database.php //优先级大于应用或者模块 则修改名称为database的配置 
+return [
+    // 用户名
+    'username' => 'houguang',
+];
 
+\extra\my_info.php //优先级大于应用或者模块 则添加以文件名my_info为名称的配置项 
+return [
+    'my_name' => 'houguanglong',
+    'age' => 20,
+];
 
+6、配置项的优先级顺序
 
+惯例配置(\thinkphp\covention.php) < 应用配置(\app\config.php) < 模块配置(\app\模块名\config.php) < 动态配置(Config::set())
+                                               ^                             ^
+                                        应用 > 独立 > 场景              应用 > 独立 > 场景
+                       (场景配置:'app_status' => '场景配置文件名',\app\文件名.php)
+                       
+                       
+7、配置作用域
+//作用域 配置参数支持作用域的概念，默认情况下，所有参数都在同一个系统默认作用域下面。
+//如果你的配置参数需 要用于不同的项目或者相互隔离，那么就可以使用作用域功能，作用域的作用好比是配置参数的命名空间一 样。
+//	导入my_config.php中的配置参数，并纳入user作用域 
+Config::load('my_config.php','','user');	
+//	解析并导入my_config.ini	中的配置参数，读入test作用域 
+Config::parse('my_config.ini','ini','test');	
+//	设置user_type参数，并纳入user作用域 
+Config::set('user_type',1,'user');	
+//	批量设置配置参数，并纳入test作用域 
+Config::set($config,'test');	
+//	读取user作用域的user_type配置参数 echo	
+Config::get('user_type','user');	
+//	读取user作用域下面的所有配置参数 
+dump(Config::get('','user'));	
+dump(config('',null,'user'));	
+//	同上 
+//	判断在test作用域下面是否存在user_type参数 
+Config::has('user_type','test');
+
+//实例演示
+class Index
+{
+    public function index()
+    {
+        //写一组配置项
+        $conf = [
+            'site_name' => 'houguang',
+            'school' => '郴州职业技术学院'
+        ];
+        //批量设置 写入user作用域
+        Config::set($conf,'user');
+        //输出所有配置 作用域相当于二级配置的名称
+        //dump(Config::get());
+        //使用数组的方式修改作用域中的值
+        Config::set('user.site_name','houguanglong');
+        //查看设置的值
+        dump(Config::get('user.site_name'));
+        //切换作用域 使用Config::range('作用域名')
+        Config::range('_sys_');
+        dump(Config::get());
+    }
+}
 
