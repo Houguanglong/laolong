@@ -1,0 +1,49 @@
+1、url路由的三大模式 
+//普通模式  支持path_info格式
+// 是否开启路由
+    'url_route_on'           => false,
+
+
+//混合模式  如果未注册路由则默认使用path_info格式 否则按路由规则访问
+// 是否开启路由
+    'url_route_on'           => true,
+    
+    
+使用Route类的rule方法注册路由 rule('路由名','对应的应用模块方法路径')
+think\Route::rule('test','index/index/test');
+
+
+//强制模式 开启状态则必须使用注册路由规则才能访问
+// 是否强制使用路由
+    'url_route_must'         => true,
+    
+    
+2、路由注册方法
+(1)动态方法
+Route::rule('路由规则','路由地址',请求类型,[路由参数],[变量规则])
+
+class Index
+{
+    public function test($message)
+    {
+        return '我是候光我在学习'.$message;
+    }
+}
+
+think\Route::rule('test/:message','index/index/test','GET',['ext'=> 'html'],['message' =>'\w{1,10}']);
+http://houguang.com/test/python.html
+
+
+
+(2)配置数组(配置文件方法)
+return [
+    '路由规则' => '路由地址',
+    '路由规则' => [路由地址',[路由参数],[变量规则]]
+]
+
+return [
+    'test' => 'index/index/test', //没有参数
+    'test/:message' => ['index/index/test',['method'=>'GET','ext'=>'html'],['message'=>'\w{1,10}']] //有参数和规则
+];
+
+    
