@@ -46,4 +46,273 @@ return [
     'test/:message' => ['index/index/test',['method'=>'GET','ext'=>'html'],['message'=>'\w{1,10}']] //有参数和规则
 ];
 
+
+3、路由规则的创建 静态规则和动态规则
+
+路由规则组成部分：
+
+路由标识符/:变量名1/：变量名2/[:可选变量]
+ 静态部分           动态部分
+ 
+class Index
+{
+    public function test($name,$message='php')
+    {
+        return '我是'.$name.'我在学习'.$message;
+    }
+}
+
+路由注册
+think\Route::rule('test/:name/[:message]','index/index/test','GET',['ext'=> 'html'],['name'=>'\w{3,10}','message' =>'\w{1,10}']);
+浏览器访问
+http://houguang.com/test/houguang.html //我是houguang我在学习php
+
+4、路由地址的五种类型
+(1)路由到模块/控制器/操作
+thinkphp/convention.php 
+
+// 默认的访问控制器层
+'url_controller_layer'   => 'controller',  //更改默认的控制器名称则必须修改模块的控制器名称
+
+额外参数
+//在这种方式路由跳转的时候支持额外传入参数对（额外参数指的是不在URL里面的参数，
+隐式传入需要的操作 中，有时候能够起到一定的安全防护作用，后面我们会提到）。
+
+例如：
+class Index
+{
+    public function test($name,$message='php')
+    {
+        return '我是'.$name.'我在学习'.$message;
+    }
+}
+
+路由规则
+thinkphp/Route::get('test/:name','index/index/test?message=python')
+上面的路由规则定义中额外参数message都是URL里面不存在的，属于隐式传值，当然并不 一定需要用到，只是在需要的时候可以使用。 
+浏览器访问
+http://houguang.com/test/houguang //我是houguang我在学习python
+
+(2)路由到操作方法
+路由地址的格式为：
+//直接执行某个控制器类的方法,不需要去解析模块/ 控制器/操作这些，同时也不会去初始化模块
+Route::rule('路由规则','@模块/控制器/操作') 
+
+例如：
+创建一个配置文件
+index/config.php
+return [
+    'my_class' => 'thinkphp5',
+];
+
+class Index
+{
+    public function test($name,$message='php')
+    {
+        $message = Config::get('my_class');
+        return '我是'.$name.'我在学习'.$message;
+    }
+}
+
+路由规则
+thinkphp/Route::get('test/:name','index/index/test) //我是houguang我在学习thinkphp5
+加上@符号 不初始化模块
+thinkphp/Route::get('test/:name','@index/index/test) //我是houguang我在学习 
+
+(3)路由到类方法
+路由地址的格式为（动态方法）：
+\类的命名空间\类名@方法名
+或者（静态方法）
+\类的命名空间\类名::方法名
+声明：
+1、类必须创建在应用目录或者子目录中
+2、静态方法支持外部动态访问，但建议在语法上分开
+3、为了项目规范，除非不得已，否则尽量少用
+
+创建一个类
+app\Test.php
+namespace app;
+class Test
+{
+    public function test()
+    {
+        return '我是自定义类中test()方法';
+    }
+}
+
+路由规则注册
+think\Route::get('test','\app\Test@test');
+浏览器访问
+http://houguang.com/test //我是自定义类中test()方法
+
+(4)路由到闭包函数
+基本语法
+Route::rule('路由规则',function([参数]){
+    //闭包函数代码
+});
+
+路由规则
+think\Route::rule('test/:message',function ($message){
+   return '我是闭包函数的内容,我在学习'.$message;
+});
+浏览器访问
+http://houguang.com/test/python //我是闭包函数的内容,我在学习python
+
+(5)路由重定向
+基本语法
+Route::rule('路由规则','重定向地址') //重定向地址：'/'或者'http://'开头 
+'/'：是以当前可访问的Web目录开始如'public';
+
+public/test.php
+echo '我是根目录下面的test页面';
+
+路由注册
+Route::rule('test','/test.php');    //我是根目录下面的test路由地址
+Route::rule('test','http://www.baidu.com');     //访问百度
+
+5、路由参数
+一、请求类型 GET和POST
+(1)使用Route::rule()/any():['method'=>'get|post'];
+think\Route::rule('test','/index/index/test','GET',[],[]);
+或者数组形式
+return [
+    'test' => ['/index/index/test',['method'=>'get'],[]]
+];
+(2)使用Route::get()/post()注册方法已声明类型则不用设置;
+think\Route::get('test','/index/index/test',[],[]);
+
+二、URL后缀/扩展名
+说明
+限定可访问的路由规则的url后缀名称，默认为html
+
+使用方法
+允许的url后缀：['ext'=>'html|shtml'];
+禁止的url后缀：['deny_ext'=>'jpg|png'];
+
+版本在5.0.7上可使用
+允许的url后缀为空:['ext'=>''];
+禁止的url后缀为空:['deny_ext'=>''];
+
+return [
+    'test' => ['/index/index/test',['method'=>'get','ext'=>'html|xhtml','dent_ext'=>'jpg|png'],[]]
+];
+
+三、使用回调来验证路由规则
+说明
+回调函数返回true则路由规则有效
+
+使用方法
+//回调函数写在应用公共方法中：common.php
+//语法：['callback'=>'回调函数名称']; 例如用回调来检测是否存在某个应用配置项，来决定是否执行路由规则
+
+common.php
+创建一个回调函数
+function my_site()
+{
+    $site = think\Config::get('site_domian'); 
+    //检测是否存在site_domian配置项
+    if ($site) {
+        return true;
+    } else {
+        return false;
+    }
+}
+
+路由注册
+return [
+    'test' => ['/index/index/test',['method'=>'get','callback'=>'my_site'],[]]
+];
+
+四、域名验证
+说明
+检测调用当前的路由规则的域名是不是参数所指定的域名
+使用方法
+语法格式:['domain'=>'域名'];
+
+return [
+    'test' => ['/index/index/test',['method'=>'get','domain'=>'houguang.com'],[]]
+];
+
+
+6、路由规则中的设置技巧 全局/局部 正则验证
+//局部变量规则
+think\Route::rule('test/:name/:age','index/index/test','GET',[
+    'name' => '[a-zA-Z]+',  //name必须是纯字符串，至少有一个字符
+    'age' => '\d{2}',   //age必须是一个整数，至少有2位
+]);
+
+
+//全局变量规则 使用patter方法
+think\Route::pattern([
+    'name' => '[a-zA-Z]+',  //name必须是纯字符串，至少有一个字符
+    'age' => '\d{2}',   //age必须是一个整数，至少有2位
+]);
+或者以数组形式
+return [
+    '__pattern__' => [
+        'name' => '[a-zA-Z]+',  //name必须是纯字符串，至少有一个字符
+        'age' => '\d{2}',   //age必须是一个整数，至少有2位
+    ],
+    'test/:name/:age' => ['index/index/test',['method'=>'get']]
+];
+
+7、路由分组
+//路由分组功能允许把相同前缀的路由定义合并分组，这样可以提高路由匹配的效率，不必每次都去遍历完整 的路由规则
+定义一个Test类
+class Test
+{
+    public function demo1($id)
+    {
+        return '我是index模块下面的Test控制器中的demo1方法,$id='.$id;
+    }
+    public function demo2($name)
+    {
+        return '我是index模块下面的Test控制器中的demo2方法,$name='.$name;
+    }
+    public function demo3($isOk)
+    {
+        return '我是index模块下面的Test控制器中的demo3方法,$isOk='.$isOk;
+    }
+}
+
+//分组 使用Route::group方法
+think\Route::group('demo',[
+    ':id' => ['index/test/demo1',['method'=>'get'],['id'=>'\d{2,4}']],
+    ':name' => ['index/test/demo2',['method'=>'get'],['name'=>'[a-zA-Z]+']],
+    ':isOk' => ['index/test/demo3',['method'=>'get'],['isOk'=>'0|1']]
+]);
+
+//闭包分组 
+think\Route::group('demo',function (){
+   think\Route::get(':id','index/test/demo1',[],['id'=>'\d{2,4}']);
+   think\Route::get(':name','index/test/demo2',[],['name'=>'[a-zA-Z]+']);
+   think\Route::get(':isOk','index/test/demo3',[],['isOk'=>'0|1']);
+});
+
+//虚拟分组
+think\Route::group('demo',[     //分组名称
+    ':id' => 'demo1',   //路由规则
+    ':name' => 'demo2',
+    ':isOk' => 'demo3',
+],[
+    'method'=>'get',    //路由参数
+    'prefix'=>'index/test/'
+],[
+    'id'=>'\d{2,4}',    //变量规则
+    'name'=>'[a-zA-Z]+',
+    'isOk'=>'0|1',
+]);
+
+
+
+
+
+
+
+
+
+
+
+
+
     
