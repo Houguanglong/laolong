@@ -304,9 +304,54 @@ think\Route::group('demo',[     //分组名称
 ]);
 
 
+8、路由别名
+//快速注册同一控制器下面的所有操作方法(不支持变量规则)
+动态方法:Route::alias('规则名称','模块/控制器',[路由参数])；
 
+app\index\Test.php
+创建同控制器下面的方法
+class Test
+{
+    public function add($n,$m)
+    {
+        return $n.'+'.$m.'='.($n+$m);
+    }
+    public function sub($n,$m)
+    {
+        return $n.'-'.$m.'='.($n-$m);
+    }
+    public function mult($n,$m)
+    {
+        return $n.'*'.$m.'='.($n*$m);
+    }
+    public function div($n,$m)
+    {
+        return $n.'/'.$m.'='.round(($n/$m),2);
+    }
+}
 
+路由注册
+//动态方法
+动态方法:Route::alias('规则名称别名','模块/控制器',[路由参数])；
+think\Route::alias('math','index/test',[
+    'ext' => 'html',
+    'allow' => 'add,sub',   //白名单 设置可访问的方法
+    'except' => 'mult,div'  //黑名单 设置禁止访问的方法
+])
 
+//静态数组
+静态数组:
+return [
+    '__alias__' => ['规则名称别名','模块/控制器',[参数]]    
+]
+return [
+    '__alias__' => [
+    'math' => ['index/test',['ext' => 'html', 'allow' => 'add,sub', 'except' => 'mult,div']]
+    ],
+];
+
+访问
+http://houguang.com/math/add/40/50.html     // 40+50=90
 
 
 
