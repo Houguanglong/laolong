@@ -354,7 +354,81 @@ return [
 http://houguang.com/math/add/40/50.html     // 40+50=90
 
 
+9、路由绑定
+(1)入口绑定
+说明
+在入口文件中添加'BIND_MODULE'常量
+//将当前访问绑定到模块和控制器
+define('BIND_MODULE','index');      模块级
+define('BIND_MODULE','index/test');     控制器级
 
+原访问
+http://houguang.com/index/test/add/10/20
+模块级访问
+http://houguang.com/test/add/10/20
+控制器级访问
+http://houguang.com/add/10/20
+
+(2)入口自动绑定
+说明
+入口文件名与应用模块自动绑定
+//入口自动绑定模块设置：'auto_bind_module' => true,
+//创建需要绑定的入口文件例如 admin.php
+<?php
+// 定义应用目录
+define('APP_PATH', __DIR__ . '/../application/');
+//定义配置目录
+define('CONF_PATH',__DIR__ . '/../config/');
+// 加载框架引导文件
+require __DIR__ . '/../thinkphp/start.php';
+
+//创建与入口文件对应的模块与控制器 app/admin/controller/Index.php
+<?php
+namespace app\admin\controller;
+
+class Index
+{
+    //默认方法
+    public function index()
+    {
+        return '我是admin.php入口文件的对应的模块下面的方法';
+    }
+}
+
+//直接访问：域名/admin.php 就会自动执行admin模块下面的控制器的默认方法
+
+控制器级访问
+http://houguang.com/admin.php  //我是admin.php入口文件的对应的模块下面的方法
+
+
+(3)动态绑定
+语法：Route::bind('模块[/控制器][/操作]')
+//绑定url到模块
+Route::bind('模块');
+\think\Route::bind('index');
+//绑定url到模块下面的控制器
+Route::bind('模块/控制器');
+\think\Route::bind('index/test');
+//绑定url到模块下面的控制器的操作方法
+Route::bind('模块/控制器/操作');
+\think\Route::bind('index/test/add');
+
+
+(4)路由绑定到命名空间和类
+//绑定当前的url到指定命名空间
+Route::bind('命名空间'，'namespace');
+此前，所有采用该命名空间的类，都可以直接访问
+//绑定当前的url到指定的类
+Route::bind('命名空间\类名'，'class');
+此前，所有Demo类中的方法，都可以直接访问
+
+----注意：这种绑定形式会直接跳过模块配置文件和公共文件。
+
+//绑定命名空间
+think\Route::bind('app\index\controller','namespace');
+
+//绑定类
+think\Route::bind('app\index\controller\Test','class');
 
 
 
