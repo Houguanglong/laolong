@@ -109,6 +109,7 @@ class Index extends \think\Controller   //需要继承Controller类
     {
         if ($name=='php')
         {
+            //\think\Controller 类的 redirect 方法可以实现页面的重定向功能
             //redirect(路由地址，请求变量，后缀，是否显示域名)
             $this->redirect('ok',['sitename'=>'php中文网']);
         }else
