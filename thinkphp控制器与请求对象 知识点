@@ -1,0 +1,95 @@
+1、控制器的进阶知识
+(1)创建多级控制器
+在index模块控制器下面在新建一个控制器目录demo 和控制器文件 User.php
+<?php
+namespace app\index\controller\demo;
+
+class User
+{
+    public function test()
+    {
+        return '我是多级控制器User下面的test方法';
+    }
+}
+浏览器访问
+http://houguang.com/index/demo.user/test //使用符号.连接多级控制器
+
+(2)创建空控制器和空操作方法
+说明
+空控制器和空操作方法是用来自定义报错的情况信息
+使用方法
+配置
+    // 默认的空控制器名
+    'empty_controller'       => 'Error',
+    
+创建一个与配置参数相同名称的Error控制器
+<?php
+namespace app\index\controller;
+class Error
+{ 
+    public function test()
+    {
+        return '你是空控制器里的test方法';
+    }
+    //创建空操作方法 使用_empty函数
+    public function _empty($name)
+    {
+        return '你访问的方法'.$name.'不存在';
+    }
+}
+
+
+2、前置操作
+//可以为某个或者某些操作指定前置执行的操作方法，设置	beforeActionList 属性可以指定某个方法为其 他方法的前置操作
+//数组键名为需要调用的前置方法名，无值的话为当前控制器下所有方法的前置方法。
+['only'	=>	'']
+表示所有方法使用前置方法。
+['except'	=>	'方法名,方法名']
+表示这些方法不使用前置方法，
+['only'	=>	'方法名,方法名']
+表示只有这些方法使用前置方法。
+
+实例
+class Test extends \think\Controller
+{
+    protected $beforeActionList = [ //前置操作方法对象列表 继承Controller类
+        'before1' => '',    //空表示在当前类中所有的操作方法都有效
+        'before2' => ['only'=>'demo2'], //only只对demo2有效
+        'before3' => ['except'=>'demo1,demo2'],   //except 除了demo1,demo2以外有效
+    ];
+    protected $sitename;
+    
+    //前置操作方法
+    protected function before1()
+    {
+        $this->sitename = $this->request->param('name');  //request->param（'url参数名'）获取路由参数值
+    }
+    protected function before2()
+    {
+        $this->sitename = '湖南郴州';
+    }
+    protected function before3()
+    {
+        $this->sitename = '郴州职业技术学院';
+    }
+    
+    
+    public function demo1()
+    {
+        return $this->sitename;
+    }
+    public function demo2()
+    {
+        return $this->sitename;
+    }
+    public function demo3()
+    {
+        return $this->sitename;
+    }
+
+}
+
+
+
+
+
