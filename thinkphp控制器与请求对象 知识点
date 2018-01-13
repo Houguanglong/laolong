@@ -89,6 +89,43 @@ class Test extends \think\Controller
 
 }
 
+3、页面跳转和重定向
+//系统的 \think\Controller 类内置了两个跳转方法 success 和 error ，用于页 面跳转提示
+实例
+class Index extends \think\Controller   //需要继承Controller类
+{
+    public function demo($name)
+    {
+        if ($name=='php')
+        {
+            $this->success('验证成功,正在跳转...',url('login/ok'));     //跳转其他模块或者控制器需要添加路径
+        }else
+        {
+            $this->error('验证失败，正在跳转登陆界面',url('login/login'));
+        }
+    }
+
+    public function demo1($name)
+    {
+        if ($name=='php')
+        {
+            //redirect(路由地址，请求变量，后缀，是否显示域名)
+            $this->redirect('ok',['sitename'=>'php中文网']);
+        }else
+        {
+            //302代表临时重定向 301代表永久重定向
+            $this->redirect('http://www.baidu.com',302);
+        }
+    }
+
+    public function ok($sitename)
+    {
+        return '欢迎进入'.$sitename.'学习thinkphp5技术';    //欢迎进入php中文网学习thinkphp5技术
+    }
+
+}
+
+
 
 
 
